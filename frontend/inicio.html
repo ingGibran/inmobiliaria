@@ -24,34 +24,96 @@
         }
     </style>
     <script>
-        // Función de simulación para los botones
-        function handleAction(action) {
-            const messageContainer = document.getElementById('message-box');
-            messageContainer.textContent = `Acción ejecutada: ${action}. (El botón aún no navega.)`;
-            messageContainer.classList.remove('hidden');
-            messageContainer.classList.add('bg-indigo-100', 'border-indigo-500', 'text-indigo-800');
-            setTimeout(() => {
-                messageContainer.classList.add('hidden');
-            }, 3000);
-        }
-
-        // Simula la función de los iconos/botones
+        // Gestión de modales
         document.addEventListener('DOMContentLoaded', () => {
-            document.getElementById('login-btn').addEventListener('click', () => handleAction('Iniciar Sesión'));
-            document.getElementById('register-btn').addEventListener('click', () => handleAction('Registrar'));
-            document.getElementById('explore-btn').addEventListener('click', () => handleAction('Explorar Propiedades'));
+            const loginModal = document.getElementById('login-modal');
+            const registerModal = document.getElementById('register-modal');
+            const loginBtn = document.getElementById('login-btn');
+            const registerBtn = document.getElementById('register-btn');
+            const exploreBtn = document.getElementById('explore-btn');
+
+            // Función para abrir modal
+            function openModal(modal) {
+                closeAllModals();
+                modal.classList.remove('hidden');
+                document.body.style.overflow = 'hidden'; // Prevenir scroll
+            }
+
+            // Función para cerrar todos los modales
+            function closeAllModals() {
+                loginModal.classList.add('hidden');
+                registerModal.classList.add('hidden');
+                document.body.style.overflow = ''; // Restaurar scroll
+            }
+
+            // Abrir modal de login
+            loginBtn.addEventListener('click', () => openModal(loginModal));
+
+            // Abrir modal de registro
+            registerBtn.addEventListener('click', () => openModal(registerModal));
+
+            // Botón explorar (mantener funcionalidad anterior)
+            exploreBtn.addEventListener('click', () => {
+                console.log('Explorar Propiedades clickeado');
+            });
+
+            // Cerrar modales al hacer clic en el botón X
+            document.querySelectorAll('.close-modal').forEach(btn => {
+                btn.addEventListener('click', closeAllModals);
+            });
+
+            // Cerrar modales al hacer clic en el overlay (fuera de la card)
+            [loginModal, registerModal].forEach(modal => {
+                modal.addEventListener('click', (e) => {
+                    if (e.target === modal) {
+                        closeAllModals();
+                    }
+                });
+            });
+
+            // Cerrar modales con la tecla Escape
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') {
+                    closeAllModals();
+                }
+            });
+
+            // Cambiar entre modales
+            document.getElementById('go-to-login').addEventListener('click', (e) => {
+                e.preventDefault();
+                openModal(loginModal);
+            });
+
+            document.getElementById('go-to-register').addEventListener('click', (e) => {
+                e.preventDefault();
+                openModal(registerModal);
+            });
+
+            // Manejo de formularios (simulación)
+            document.getElementById('login-form').addEventListener('submit', (e) => {
+                e.preventDefault();
+                console.log('Login form submitted');
+                alert('Funcionalidad de inicio de sesión en desarrollo');
+            });
+
+            document.getElementById('register-form').addEventListener('submit', (e) => {
+                e.preventDefault();
+                const password = document.getElementById('register-password').value;
+                const confirmPassword = document.getElementById('register-confirm-password').value;
+
+                if (password !== confirmPassword) {
+                    alert('Las contraseñas no coinciden');
+                    return;
+                }
+
+                console.log('Register form submitted');
+                alert('Funcionalidad de registro en desarrollo');
+            });
         });
     </script>
 </head>
 
 <body class="min-h-screen antialiased">
-
-    <!-- Mensaje de Notificación (Reemplazo de alert()) -->
-    <div id="message-box"
-        class="fixed top-5 left-1/2 transform -translate-x-1/2 p-3 rounded-xl border-l-4 shadow-lg text-sm transition-all duration-300 hidden z-50"
-        role="alert">
-        <!-- El contenido se inserta con JavaScript -->
-    </div>
 
     <!-- Encabezado (Modularidad Lógica) -->
     <header class="sticky top-0 z-40 bg-white border-b border-gray-200 shadow-lg">
@@ -136,6 +198,154 @@
             </button>
         </div>
     </main>
+
+    <!-- Modal de Login -->
+    <div id="login-modal"
+        class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8 relative animate-fade-in">
+            <!-- Botón Cerrar -->
+            <button class="close-modal absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="18" y1="6" x2="6" y2="18" />
+                    <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+            </button>
+
+            <!-- Contenido del Modal -->
+            <div class="text-center mb-8">
+                <h2 class="text-3xl font-bold text-gray-900 mb-2">Iniciar Sesión</h2>
+                <p class="text-gray-600">Accede a tu cuenta de InMobirelia</p>
+            </div>
+
+            <!-- Formulario de Login -->
+            <form id="login-form" class="space-y-6">
+                <!-- Email -->
+                <div>
+                    <label for="login-email" class="block text-sm font-semibold text-gray-700 mb-2">
+                        Email
+                    </label>
+                    <input type="email" id="login-email" required
+                        class="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-indigo-600 focus:outline-none transition-colors"
+                        placeholder="tu@email.com">
+                </div>
+
+                <!-- Contraseña -->
+                <div>
+                    <label for="login-password" class="block text-sm font-semibold text-gray-700 mb-2">
+                        Contraseña
+                    </label>
+                    <input type="password" id="login-password" required
+                        class="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-indigo-600 focus:outline-none transition-colors"
+                        placeholder="••••••••">
+                </div>
+
+                <!-- Botón de Acceder -->
+                <button type="submit"
+                    class="w-full bg-gradient-to-r from-indigo-600 to-indigo-700 text-white font-semibold py-3 rounded-xl hover:from-indigo-700 hover:to-indigo-800 transition-all duration-300 shadow-lg hover:shadow-xl">
+                    Acceder
+                </button>
+
+                <!-- Enlace a Registro -->
+                <p class="text-center text-sm text-gray-600">
+                    ¿No tienes cuenta?
+                    <a href="#" id="go-to-register"
+                        class="text-indigo-600 font-semibold hover:text-indigo-700 transition-colors">
+                        Regístrate aquí
+                    </a>
+                </p>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal de Registro -->
+    <div id="register-modal"
+        class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8 relative animate-fade-in">
+            <!-- Botón Cerrar -->
+            <button class="close-modal absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="18" y1="6" x2="6" y2="18" />
+                    <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+            </button>
+
+            <!-- Contenido del Modal -->
+            <div class="text-center mb-8">
+                <h2 class="text-3xl font-bold text-gray-900 mb-2">Crear Cuenta</h2>
+                <p class="text-gray-600">Únete a InMobirelia hoy mismo</p>
+            </div>
+
+            <!-- Formulario de Registro -->
+            <form id="register-form" class="space-y-5">
+                <!-- Email -->
+                <div>
+                    <label for="register-email" class="block text-sm font-semibold text-gray-700 mb-2">
+                        Email
+                    </label>
+                    <input type="email" id="register-email" required
+                        class="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-indigo-600 focus:outline-none transition-colors"
+                        placeholder="tu@email.com">
+                </div>
+
+                <!-- Nombres -->
+                <div>
+                    <label for="register-nombres" class="block text-sm font-semibold text-gray-700 mb-2">
+                        Nombres
+                    </label>
+                    <input type="text" id="register-nombres" required maxlength="100"
+                        class="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-indigo-600 focus:outline-none transition-colors"
+                        placeholder="Tus nombres">
+                </div>
+
+                <!-- Apellidos -->
+                <div>
+                    <label for="register-apellidos" class="block text-sm font-semibold text-gray-700 mb-2">
+                        Apellidos
+                    </label>
+                    <input type="text" id="register-apellidos" required maxlength="100"
+                        class="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-indigo-600 focus:outline-none transition-colors"
+                        placeholder="Tus apellidos">
+                </div>
+
+                <!-- Contraseña -->
+                <div>
+                    <label for="register-password" class="block text-sm font-semibold text-gray-700 mb-2">
+                        Contraseña
+                    </label>
+                    <input type="password" id="register-password" required
+                        class="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-indigo-600 focus:outline-none transition-colors"
+                        placeholder="••••••••">
+                </div>
+
+                <!-- Confirmar Contraseña -->
+                <div>
+                    <label for="register-confirm-password" class="block text-sm font-semibold text-gray-700 mb-2">
+                        Confirmar Contraseña
+                    </label>
+                    <input type="password" id="register-confirm-password" required
+                        class="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-indigo-600 focus:outline-none transition-colors"
+                        placeholder="••••••••">
+                </div>
+
+                <!-- Botón de Crear Cuenta -->
+                <button type="submit"
+                    class="w-full bg-gradient-to-r from-indigo-600 to-indigo-700 text-white font-semibold py-3 rounded-xl hover:from-indigo-700 hover:to-indigo-800 transition-all duration-300 shadow-lg hover:shadow-xl">
+                    Crear Cuenta
+                </button>
+
+                <!-- Enlace a Login -->
+                <p class="text-center text-sm text-gray-600">
+                    ¿Ya tienes cuenta?
+                    <a href="#" id="go-to-login"
+                        class="text-indigo-600 font-semibold hover:text-indigo-700 transition-colors">
+                        Inicia sesión aquí
+                    </a>
+                </p>
+            </form>
+        </div>
+    </div>
 
     <!-- Pie de página simple -->
     <footer class="w-full py-4 text-center text-gray-500 text-xs border-t border-gray-100 bg-white">
