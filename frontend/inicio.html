@@ -24,7 +24,14 @@
         }
     </style>
     <script>
-        // Gestión de modales
+        // Configuración de URLs de la API
+        const API_CONFIG = {
+            BASE_URL: 'http://127.0.0.1:8000',
+            REGISTER_URL: 'http://127.0.0.1:8000/auth/register/',
+            LOGIN_URL: 'http://127.0.0.1:8000/auth/login/'
+        };
+
+        // Gestión de modales y autenticación
         document.addEventListener('DOMContentLoaded', () => {
             const loginModal = document.getElementById('login-modal');
             const registerModal = document.getElementById('register-modal');
@@ -32,37 +39,264 @@
             const registerBtn = document.getElementById('register-btn');
             const exploreBtn = document.getElementById('explore-btn');
 
+            // ==================== FUNCIONES AUXILIARES ====================
+
+            // Función para mostrar notificaciones
+            function showNotification(message, type = 'info') {
+                // Crear elemento de notificación si no existe
+                let notification = document.getElementById('notification');
+                if (!notification) {
+                    notification = document.createElement('div');
+                    notification.id = 'notification';
+                    notification.className = 'fixed top-5 left-1/2 transform -translate-x-1/2 px-6 py-4 rounded-xl shadow-2xl text-sm font-medium transition-all duration-300 z-[60] min-w-[300px] text-center';
+                    document.body.appendChild(notification);
+                }
+
+                // Establecer estilos según el tipo
+                const styles = {
+                    success: 'bg-green-100 border-2 border-green-500 text-green-800',
+                    error: 'bg-red-100 border-2 border-red-500 text-red-800',
+                    info: 'bg-indigo-100 border-2 border-indigo-500 text-indigo-800'
+                };
+
+                notification.className = notification.className.split(' ').slice(0, 12).join(' ') + ' ' + styles[type];
+                notification.textContent = message;
+                notification.classList.remove('hidden');
+
+                // Ocultar después de 4 segundos
+                setTimeout(() => {
+                    notification.classList.add('hidden');
+                }, 4000);
+            }
+
+            // Función para guardar token en localStorage
+            function saveToken(token) {
+                try {
+                    localStorage.setItem('auth_token', token);
+                    console.log('Token guardado exitosamente');
+                    return true;
+                } catch (error) {
+                    console.error('Error al guardar el token:', error);
+                    showNotification('Error al guardar sesión', 'error');
+                    return false;
+                }
+            }
+
+            // Función para obtener token de localStorage
+            function getToken() {
+                return localStorage.getItem('auth_token');
+            }
+
+            // Función para eliminar token (logout)
+            function clearToken() {
+                localStorage.removeItem('auth_token');
+            }
+
             // Función para abrir modal
             function openModal(modal) {
                 closeAllModals();
                 modal.classList.remove('hidden');
-                document.body.style.overflow = 'hidden'; // Prevenir scroll
+                document.body.style.overflow = 'hidden';
             }
 
             // Función para cerrar todos los modales
             function closeAllModals() {
                 loginModal.classList.add('hidden');
                 registerModal.classList.add('hidden');
-                document.body.style.overflow = ''; // Restaurar scroll
+                document.body.style.overflow = '';
             }
 
-            // Abrir modal de login
-            loginBtn.addEventListener('click', () => openModal(loginModal));
+            // ==================== MANEJO DE REGISTRO ====================
 
-            // Abrir modal de registro
+            async function handleRegister(e) {
+                e.preventDefault();
+
+                // Obtener valores del formulario
+                const email = document.getElementById('register-email').value.trim();
+                const nombres = document.getElementById('register-nombres').value.trim();
+                const apellidos = document.getElementById('register-apellidos').value.trim();
+                const password = document.getElementById('register-password').value;
+                const confirmPassword = document.getElementById('register-confirm-password').value;
+
+                // Validar que las contraseñas coincidan
+                if (password !== confirmPassword) {
+                    showNotification('Las contraseñas no coinciden', 'error');
+                    return;
+                }
+
+                // Validar longitud mínima de contraseña
+                if (password.length < 6) {
+                    showNotification('La contraseña debe tener al menos 6 caracteres', 'error');
+                    return;
+                }
+
+                // Preparar datos para enviar
+                const data = {
+                    email: email,
+                    nombres: nombres,
+                    apellidos: apellidos,
+                    password: password
+                };
+
+                try {
+                    // Mostrar indicador de carga
+                    const submitBtn = e.target.querySelector('button[type="submit"]');
+                    const originalText = submitBtn.textContent;
+                    submitBtn.textContent = 'Creando cuenta...';
+                    submitBtn.disabled = true;
+
+                    // Realizar petición POST
+                    const response = await fetch(API_CONFIG.REGISTER_URL, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(data)
+                    });
+
+                    const result = await response.json();
+
+                    // Restaurar botón
+                    submitBtn.textContent = originalText;
+                    submitBtn.disabled = false;
+
+                    if (response.ok || response.status === 201) {
+                        // Registro exitoso
+                        if (result.token) {
+                            saveToken(result.token);
+                        }
+                        showNotification('¡Cuenta creada exitosamente! Redirigiendo...', 'success');
+
+                        // Limpiar formulario
+                        e.target.reset();
+
+                        // Redirigir a menu.html después de 1.5 segundos
+                        setTimeout(() => {
+                            closeAllModals();
+                            window.location.href = 'menu.html';
+                        }, 1500);
+                    } else {
+                        // Manejar errores del servidor
+                        let errorMessage = 'Error al crear la cuenta';
+
+                        if (result.email && Array.isArray(result.email)) {
+                            errorMessage = result.email[0];
+                        } else if (result.error) {
+                            errorMessage = result.error;
+                        } else if (result.message) {
+                            errorMessage = result.message;
+                        }
+
+                        showNotification(errorMessage, 'error');
+                    }
+                } catch (error) {
+                    console.error('Error en el registro:', error);
+                    showNotification('Error de conexión. Verifica que el servidor esté activo', 'error');
+
+                    // Restaurar botón en caso de error
+                    const submitBtn = e.target.querySelector('button[type="submit"]');
+                    submitBtn.textContent = 'Crear Cuenta';
+                    submitBtn.disabled = false;
+                }
+            }
+
+            // ==================== MANEJO DE LOGIN ====================
+
+            async function handleLogin(e) {
+                e.preventDefault();
+
+                // Obtener valores del formulario
+                const email = document.getElementById('login-email').value.trim();
+                const password = document.getElementById('login-password').value;
+
+                // Preparar datos para enviar
+                const data = {
+                    email: email,
+                    password: password
+                };
+
+                try {
+                    // Mostrar indicador de carga
+                    const submitBtn = e.target.querySelector('button[type="submit"]');
+                    const originalText = submitBtn.textContent;
+                    submitBtn.textContent = 'Iniciando sesión...';
+                    submitBtn.disabled = true;
+
+                    // Realizar petición POST
+                    const response = await fetch(API_CONFIG.LOGIN_URL, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(data)
+                    });
+
+                    const result = await response.json();
+
+                    // Restaurar botón
+                    submitBtn.textContent = originalText;
+                    submitBtn.disabled = false;
+
+                    if (response.ok) {
+                        // Login exitoso
+                        if (result.token) {
+                            saveToken(result.token);
+                            showNotification('¡Sesión iniciada correctamente! Redirigiendo...', 'success');
+
+                            // Limpiar formulario
+                            e.target.reset();
+
+                            // Redirigir a menu.html después de 1.5 segundos
+                            setTimeout(() => {
+                                closeAllModals();
+                                window.location.href = 'menu.html';
+                            }, 1500);
+                        } else {
+                            showNotification('Error: Token no recibido', 'error');
+                        }
+                    } else {
+                        // Manejar errores de autenticación
+                        let errorMessage = 'Email o contraseña incorrectos';
+
+                        if (result.error) {
+                            errorMessage = result.error;
+                        } else if (result.message) {
+                            errorMessage = result.message;
+                        } else if (result.non_field_errors) {
+                            errorMessage = result.non_field_errors[0];
+                        }
+
+                        showNotification(errorMessage, 'error');
+                    }
+                } catch (error) {
+                    console.error('Error en el login:', error);
+                    showNotification('Error de conexión. Verifica que el servidor esté activo', 'error');
+
+                    // Restaurar botón en caso de error
+                    const submitBtn = e.target.querySelector('button[type="submit"]');
+                    submitBtn.textContent = 'Acceder';
+                    submitBtn.disabled = false;
+                }
+            }
+
+            // ==================== EVENT LISTENERS ====================
+
+            // Abrir modales
+            loginBtn.addEventListener('click', () => openModal(loginModal));
             registerBtn.addEventListener('click', () => openModal(registerModal));
 
-            // Botón explorar (mantener funcionalidad anterior)
+            // Botón explorar
             exploreBtn.addEventListener('click', () => {
                 console.log('Explorar Propiedades clickeado');
+                showNotification('Funcionalidad en desarrollo', 'info');
             });
 
-            // Cerrar modales al hacer clic en el botón X
+            // Cerrar modales con el botón X
             document.querySelectorAll('.close-modal').forEach(btn => {
                 btn.addEventListener('click', closeAllModals);
             });
 
-            // Cerrar modales al hacer clic en el overlay (fuera de la card)
+            // Cerrar modales al hacer clic en el overlay
             [loginModal, registerModal].forEach(modal => {
                 modal.addEventListener('click', (e) => {
                     if (e.target === modal) {
@@ -89,26 +323,16 @@
                 openModal(registerModal);
             });
 
-            // Manejo de formularios (simulación)
-            document.getElementById('login-form').addEventListener('submit', (e) => {
-                e.preventDefault();
-                console.log('Login form submitted');
-                alert('Funcionalidad de inicio de sesión en desarrollo');
-            });
+            // Manejar envío de formularios
+            document.getElementById('login-form').addEventListener('submit', handleLogin);
+            document.getElementById('register-form').addEventListener('submit', handleRegister);
 
-            document.getElementById('register-form').addEventListener('submit', (e) => {
-                e.preventDefault();
-                const password = document.getElementById('register-password').value;
-                const confirmPassword = document.getElementById('register-confirm-password').value;
-
-                if (password !== confirmPassword) {
-                    alert('Las contraseñas no coinciden');
-                    return;
-                }
-
-                console.log('Register form submitted');
-                alert('Funcionalidad de registro en desarrollo');
-            });
+            // Verificar si hay token al cargar la página
+            const token = getToken();
+            if (token) {
+                console.log('Usuario ya autenticado con token:', token);
+                // Aquí podrías mostrar una UI diferente para usuarios autenticados
+            }
         });
     </script>
 </head>
